@@ -23,17 +23,12 @@ class activedirectory:
             logger.info("Could not connect to server")
         else:
             logger.debug('Connection success')
-        self.log('debug')
+        self.__log('debug')
 
     def get_dn_by_email(self, email, search_tree=None):
         search_filter = ('(&(mail=' + email + '))')
-        if not search_tree:
-            if self.__default_search_tree is not None:
-                search_tree = self.__default_search_tree
-            else:
-                logger.info('Empty search tree {}'.format(search_tree))
-                return False
-        response = self.get_search(search_tree=search_tree,
+        cur_search_tree = self.check_search_tree(search_tree)
+        response = self.get_search(search_tree=cur_search_tree,
                                    search_filter=search_filter)
         try:
             return (response[0]['dn'])
@@ -41,27 +36,26 @@ class activedirectory:
             logger.info('"{email}" not found'.format(email=email))
             return None
         except(IndexError):
-            self.log('error')
+            self.__log('error')
             return None
 
-    def get_dn_by_username(self, username, search_tree=None):
-        search_filter = ('(&(sAMAccountName=' + username + '))')
-        if not search_tree:
-            if self.__default_search_tree is not None:
-                search_tree = self.__default_search_tree
-            else:
-                logger.info('Empty search tree {}'.format(search_tree))
-                return False
-        response = self.get_search(search_tree=search_tree,
+    def get_dn(self, sAMAccountName, search_tree=None):
+        search_filter = ('(&(sAMAccountName=' + sAMAccountName + '))')
+        cur_search_tree = self.check_search_tree(search_tree)
+        response = self.get_search(search_tree=cur_search_tree,
                                    search_filter=search_filter)
         try:
             return (response[0]['dn'])
         except(KeyError):
-            logger.info('"{username}" not found'.format(username=username))
+            logger.info('"{sAMAccountName}" not found'.format(
+                        sAMAccountName=sAMAccountName))
             return None
         except(IndexError):
-            self.log('error')
+            self.__log('error')
             return None
+
+    def get_group_by_name(self, group_name, search_tree):
+        pass
 
     def get_search(self, search_tree, search_filter, attributes=[],
                    types_only=False, get_operational_attributes=True):
@@ -71,7 +65,7 @@ class activedirectory:
                            get_operational_attributes=True)
         return self.__conn.response
 
-    def log(self, type):
+    def __log(self, type):
         if type == 'error':
             logger.error('Description: {description}, \
                         message: {message}\t'.format(
@@ -92,3 +86,11 @@ class activedirectory:
                         message: {message}\t'.format(
                         description=self.__conn.result['description'],
                         message=self.__conn.result['message']))
+
+    def check_search_tree(self, search_tree):
+        if search_tree is None or search_tree == '':
+            new_search_tree = self.__default_search_tree
+        else:
+            new_search_tree = search_tree
+        logger.debug('Search_tree: {}'.format(new_search_tree))
+        return new_search_tree
