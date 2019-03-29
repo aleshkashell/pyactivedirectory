@@ -10,8 +10,8 @@ logger = logging.getLogger("AD")
 class activedirectory:
     __conn = ''
 
-    def __init__(self, ad_user, ad_password, ad_server, use_ssl=True,
-                 default_search_tree=''):
+    def __init__(self, ad_user, ad_password, ad_server, default_search_tree,
+                 use_ssl=True):
         self.__default_search_tree = default_search_tree
         self.__connect_to_ad(ad_user, ad_password, ad_server, use_ssl)
 
@@ -23,14 +23,13 @@ class activedirectory:
             logger.info("Could not connect to server")
         else:
             logger.debug('Connection success')
-        logger.debug(self.__conn.result)
+        self.log('debug')
 
-    def get_dn_by_username(self, username, search_tree):
-        search_filter = ('(&(sAMAccountName=' + username + '))')
+    def get_dn_by_email(self, email, search_tree=None):
+        search_filter = ('(&(mail=' + email + '))')
         if not search_tree:
-            if not self.__default_search_tree:
+            if self.__default_search_tree is not None:
                 search_tree = self.__default_search_tree
-                logger.debug(search_tree)
             else:
                 logger.info('Empty search tree {}'.format(search_tree))
                 return False
@@ -39,10 +38,29 @@ class activedirectory:
         try:
             return (response[0]['dn'])
         except(KeyError):
-            logger.debug(self.__conn.result)
+            logger.info('"{email}" not found'.format(email=email))
             return None
         except(IndexError):
-            logger.debug(self.__conn.result)
+            self.log('error')
+            return None
+
+    def get_dn_by_username(self, username, search_tree=None):
+        search_filter = ('(&(sAMAccountName=' + username + '))')
+        if not search_tree:
+            if self.__default_search_tree is not None:
+                search_tree = self.__default_search_tree
+            else:
+                logger.info('Empty search tree {}'.format(search_tree))
+                return False
+        response = self.get_search(search_tree=search_tree,
+                                   search_filter=search_filter)
+        try:
+            return (response[0]['dn'])
+        except(KeyError):
+            logger.info('"{username}" not found'.format(username=username))
+            return None
+        except(IndexError):
+            self.log('error')
             return None
 
     def get_search(self, search_tree, search_filter, attributes=[],
@@ -52,3 +70,25 @@ class activedirectory:
                            types_only=types_only,
                            get_operational_attributes=True)
         return self.__conn.response
+
+    def log(self, type):
+        if type == 'error':
+            logger.error('Description: {description}, \
+                        message: {message}\t'.format(
+                        description=self.__conn.result['description'],
+                        message=self.__conn.result['message']))
+        if type == 'info':
+            logger.info('Description: {description}, \
+                        message: {message}\t'.format(
+                        description=self.__conn.result['description'],
+                        message=self.__conn.result['message']))
+        if type == 'debug':
+            logger.debug('Description: {description}, \
+                        message: {message}\t'.format(
+                        description=self.__conn.result['description'],
+                        message=self.__conn.result['message']))
+        if type == 'warning':
+            logger.warning('Description: {description}, \
+                        message: {message}\t'.format(
+                        description=self.__conn.result['description'],
+                        message=self.__conn.result['message']))
