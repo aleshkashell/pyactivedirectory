@@ -62,8 +62,9 @@ class ActiveDirectory:
             self.__log('error')
             return None
 
-    def get_group_by_name(self, group_name, search_tree):
-        pass
+#    def get_group_by_name(self, group_name, search_tree):
+#        """Return dn group"""
+#        cur_search_tree = self.__check_search_tree(search_tree)
 
     def get_ou(self, search_tree):
         """Return list OUs DN from search_tree"""
@@ -73,7 +74,8 @@ class ActiveDirectory:
 
     def get_search(self, search_tree, search_filter, attributes=[], types_only=False, get_operational_attributes=True):
         """Search interface for AD"""
-        self.__conn.search(search_tree, search_filter, SUBTREE,
+        cur_search_tree = self.__check_search_tree(search_tree)
+        self.__conn.search(cur_search_tree, search_filter, SUBTREE,
                            attributes=attributes,
                            types_only=types_only,
                            get_operational_attributes=True)
