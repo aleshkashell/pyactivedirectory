@@ -6,6 +6,9 @@ This module for interaction with AD. It is wrapper over ldap3 module.
 
 ## Interface
 
+- Add object(who) to group(where)
+```add_to_group(self, who, where)```
+
 - Set status enable for user dn
 ```enable_user_dn(self, dn)```
 
@@ -15,16 +18,19 @@ This module for interaction with AD. It is wrapper over ldap3 module.
 - Get user dn by email
 ```get_dn_by_email(self, email, search_tree=None)```
 
-- pass
-```get_group_by_name(self, group_name, search_tree)```
-
 - Return list OUs DN from search_tree
 ```get_ou(self, search_tree)```
 
 - Search interface for AD
 ```get_search(self, search_tree, search_filter, attributes=[], types_only=False, get_operational_attributes=True)```
 
-- pass
+- Return required attibutes. By default return all attributes
+```get_user_attribute(self, dn, attributes=None)```
+
+- Change common name
+```modify_cn(self, dn, new_cn)```
+
+- Set new password
 ```modify_password(self, dn, password)```
 
 - Change attribute for dn. Attribute must be in dict
