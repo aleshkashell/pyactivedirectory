@@ -10,13 +10,11 @@ logger = logging.getLogger("AD")
 class ActiveDirectory:
     __conn = ''
 
-    def __init__(self, ad_user, ad_password, ad_server, default_search_tree,
-                 use_ssl=True):
+    def __init__(self, ad_user, ad_password, ad_server, default_search_tree, use_ssl=True):
         self.__default_search_tree = default_search_tree
         self.__connect_to_ad(ad_user, ad_password, ad_server, use_ssl)
 
     def __connect_to_ad(self, ad_user, ad_password, ad_server, use_ssl):
-        """"""
         server = Server(ad_server, use_ssl=use_ssl)
         self.__conn = Connection(server, user=ad_user, password=ad_password)
         if not self.__conn.bind():
@@ -26,16 +24,17 @@ class ActiveDirectory:
         self.__log('debug')
 
     def enable_user_dn(self, dn):
+        """Set status enable for user dn"""
         # userAccountControl : 66048 = 512 + 65536 is enabled default user
         # only activate
         change_UAC_attribute = {"userAccountControl": [MODIFY_REPLACE, 512]}
         return self.conn.modify(dn=dn, changes=change_UAC_attribute)
 
     def get_dn_by_email(self, email, search_tree=None):
+        """Get user dn by email"""
         search_filter = ('(&(mail=' + email + '))')
         cur_search_tree = self.__check_search_tree(search_tree)
-        response = self.get_search(search_tree=cur_search_tree,
-                                   search_filter=search_filter)
+        response = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
         try:
             return (response[0]['dn'])
         except(KeyError):
@@ -46,10 +45,10 @@ class ActiveDirectory:
             return None
 
     def get_dn(self, sAMAccountName, search_tree=None):
+        """Get DN by sAMAccountName"""
         search_filter = ('(&(sAMAccountName=' + sAMAccountName + '))')
         cur_search_tree = self.__check_search_tree(search_tree)
-        response = self.get_search(search_tree=cur_search_tree,
-                                   search_filter=search_filter)
+        response = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
         try:
             return (response[0]['dn'])
         except(KeyError):
@@ -63,8 +62,8 @@ class ActiveDirectory:
     def get_group_by_name(self, group_name, search_tree):
         pass
 
-    def get_search(self, search_tree, search_filter, attributes=[],
-                   types_only=False, get_operational_attributes=True):
+    def get_search(self, search_tree, search_filter, attributes=[], types_only=False, get_operational_attributes=True):
+        """Search interface for AD"""
         self.__conn.search(search_tree, search_filter, SUBTREE,
                            attributes=attributes,
                            types_only=types_only,
@@ -73,18 +72,13 @@ class ActiveDirectory:
 
     def get_ou(self, search_tree):
         """Return list OUs DN from search_tree"""
-        response = self.get_search(
-                    search_tree=search_tree,
-                    search_filter='(&(!(objectClass=person))\
-                    (!(distinguishedName=' + search_tree + '))\
-                    (!(objectClass=group)))'
-                )
+        response = self.get_search(search_tree=search_tree, search_filter='(&(!(objectClass=person))\
+                    (!(distinguishedName=' + search_tree + '))(!(objectClass=group)))')
         return [i['dn'] for i in response]
 
     def modify_user_dn(self, dn, attributes):
-        result = self.__conn.modify(
-                    dn=dn, changes=self.__prepare_attributes(attributes)
-                )
+        """Change attribute for dn. Attribute must be in dict"""
+        result = self.__conn.modify(dn=dn, changes=self.__prepare_attributes(attributes))
         self.__log('debug')
         return result
 
@@ -92,31 +86,24 @@ class ActiveDirectory:
         pass
 
     def set_user_must_change_pass(self, dn):
+        """Set up attribute change password on next login"""
         # // use 0 instead of -1.
         password_expire = {"pwdLastSet": (MODIFY_REPLACE, [0])}
         self.conn.modify(dn=dn, changes=password_expire)
 
     def __log(self, type):
         if type == 'error':
-            logger.error('Description: {description}, \
-                        message: {message}\t'.format(
-                        description=self.__conn.result['description'],
-                        message=self.__conn.result['message']))
+            logger.error('Description: {description}, message: {message}\t'.format(
+                        description=self.__conn.result['description'], message=self.__conn.result['message']))
         if type == 'info':
-            logger.info('Description: {description}, \
-                        message: {message}\t'.format(
-                        description=self.__conn.result['description'],
-                        message=self.__conn.result['message']))
+            logger.info('Description: {description}, message: {message}\t'.format(
+                        description=self.__conn.result['description'], message=self.__conn.result['message']))
         if type == 'debug':
-            logger.debug('Description: {description}, \
-                        message: {message}\t'.format(
-                        description=self.__conn.result['description'],
-                        message=self.__conn.result['message']))
+            logger.debug('Description: {description}, message: {message}\t'.format(
+                        description=self.__conn.result['description'], message=self.__conn.result['message']))
         if type == 'warning':
-            logger.warning('Description: {description}, \
-                        message: {message}\t'.format(
-                        description=self.__conn.result['description'],
-                        message=self.__conn.result['message']))
+            logger.warning('Description: {description}, message: {message}\t'.format(
+                        description=self.__conn.result['description'], message=self.__conn.result['message']))
 
     def __check_search_tree(self, search_tree):
         if search_tree is None or search_tree == '':
