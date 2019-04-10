@@ -1,5 +1,4 @@
-from ldap3 import Server, Connection, SIMPLE, SYNC, ASYNC, SUBTREE, ALL, \
-                    MODIFY_REPLACE, ALL_ATTRIBUTES
+from ldap3 import Server, Connection, SUBTREE, MODIFY_REPLACE, ALL_ATTRIBUTES
 from ldap3.extend.microsoft.addMembersToGroups import ad_add_members_to_groups
 # import random, string #For generate password
 # import sys
@@ -23,12 +22,16 @@ class ActiveDirectory:
             logger.debug('Connection success')
         self.__log('debug')
 
+    def add_to_group(self, who, where):
+        """Add object(who) to group(where)"""
+        return ad_add_members_to_groups(self.__conn, who, where)
+
     def enable_user_dn(self, dn):
         """Set status enable for user dn"""
         # userAccountControl : 66048 = 512 + 65536 is enabled default user
         # only activate
         change_UAC_attribute = {"userAccountControl": [MODIFY_REPLACE, 512]}
-        return self.conn.modify(dn=dn, changes=change_UAC_attribute)
+        return self.__conn.modify(dn=dn, changes=change_UAC_attribute)
 
     def get_dn_by_email(self, email, search_tree=None):
         """Get user dn by email"""
@@ -62,6 +65,12 @@ class ActiveDirectory:
     def get_group_by_name(self, group_name, search_tree):
         pass
 
+    def get_ou(self, search_tree):
+        """Return list OUs DN from search_tree"""
+        response = self.get_search(search_tree=search_tree, search_filter='(&(!(objectClass=person))\
+                    (!(distinguishedName=' + search_tree + '))(!(objectClass=group)))')
+        return [i['dn'] for i in response]
+
     def get_search(self, search_tree, search_filter, attributes=[], types_only=False, get_operational_attributes=True):
         """Search interface for AD"""
         self.__conn.search(search_tree, search_filter, SUBTREE,
@@ -70,11 +79,23 @@ class ActiveDirectory:
                            get_operational_attributes=True)
         return self.__conn.response
 
-    def get_ou(self, search_tree):
-        """Return list OUs DN from search_tree"""
-        response = self.get_search(search_tree=search_tree, search_filter='(&(!(objectClass=person))\
-                    (!(distinguishedName=' + search_tree + '))(!(objectClass=group)))')
-        return [i['dn'] for i in response]
+    def get_user_attribute(self, dn, attributes=None):
+        """Return required attibutes. By default return all attributes"""
+        if not attributes:
+            attributes = ALL_ATTRIBUTES
+        response = self.get_search(search_tree=dn, search_filter='(objectClass=*)', attributes=attributes)
+        try:
+            return response[0]['attributes']
+        except KeyError:
+            return None
+
+    def modify_cn(self, dn, new_cn):
+        """Change common name"""
+        return self.__conn.modify_dn(dn, 'cn=' + new_cn)
+
+    def modify_password(self, dn, password):
+        """Set new password"""
+        return self.__conn.extend.microsoft.modify_password(user=dn, new_password=password)
 
     def modify_user_dn(self, dn, attributes):
         """Change attribute for dn. Attribute must be in dict"""
@@ -82,14 +103,11 @@ class ActiveDirectory:
         self.__log('debug')
         return result
 
-    def modify_password(self, dn, password):
-        pass
-
     def set_user_must_change_pass(self, dn):
         """Set up attribute change password on next login"""
         # // use 0 instead of -1.
         password_expire = {"pwdLastSet": (MODIFY_REPLACE, [0])}
-        self.conn.modify(dn=dn, changes=password_expire)
+        self.__conn.modify(dn=dn, changes=password_expire)
 
     def __log(self, type):
         if type == 'error':
