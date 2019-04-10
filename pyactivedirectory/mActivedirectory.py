@@ -134,6 +134,27 @@ class ActiveDirectory:
         """Return last message from ldap3.connection"""
         return self.__conn.result
 
+    def get_group_members_of_group(self, group_dn, search_tree=None):
+        """Get user members of group"""
+        cur_search_tree = self.__check_search_tree(search_tree)
+        search_filter = ('(&(objectClass=group)(memberOf={group_dn}))'.format(group_dn=group_dn))
+        self.__conn.search(cur_search_tree, search_filter, SUBTREE)
+        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
+
+    def get_all_members_of_group(self, group_dn, search_tree=None):
+        """Get user members of group"""
+        cur_search_tree = self.__check_search_tree(search_tree)
+        search_filter = ('(&(objectClass=*)(memberOf={group_dn}))'.format(group_dn=group_dn))
+        self.__conn.search(cur_search_tree, search_filter, SUBTREE)
+        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
+
+    def get_user_members_of_group(self, group_dn, search_tree=None):
+        """Get user members of group"""
+        cur_search_tree = self.__check_search_tree(search_tree)
+        search_filter = ('(&(objectClass=person)(memberOf={group_dn}))'.format(group_dn=group_dn))
+        self.__conn.search(cur_search_tree, search_filter, SUBTREE)
+        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
+
     def get_search(self, search_tree, search_filter, attributes=[], types_only=False, get_operational_attributes=True):
         """Search interface for AD"""
         cur_search_tree = self.__check_search_tree(search_tree)
