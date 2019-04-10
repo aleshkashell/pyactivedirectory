@@ -31,8 +31,22 @@ class ActiveDirectory:
         """Create entity in ad"""
         return self.__conn.add(dn=dn, object_class=object_class, attributes=attributes, controls=controls)
 
-    def create_group(self, ):
-        pass
+    def create_group(self, name, path, is_secure_group=False, attributes=None):
+        """Create group"""
+        if is_secure_group:
+            group_type = '-2147483646'
+        else:
+            group_type = '2'
+        def_attributes = {'sAMAccountName': name, 'groupType': group_type}
+        local_attrib = {}
+        if attributes:
+            local_attrib.update(attributes)
+        local_attrib.update(def_attributes)
+        dn = 'CN=' + name + ',' + path
+        if self.create_entity(dn=dn, object_class='group', attributes=local_attrib):
+            return dn
+        else:
+            return None
 
     def create_user(self, login, path, attributes=None):
         """Create disabled user without password"""
@@ -75,6 +89,7 @@ class ActiveDirectory:
         return self.__conn.modify(dn=dn, changes=change_UAC_attribute)
 
     def generate_password(self):
+        """Generate password 15 symbols"""
         random.randint(6, 20) - 3
         pwd = []
         for i in range(1, 15):
