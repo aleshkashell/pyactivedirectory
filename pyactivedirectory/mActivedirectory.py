@@ -26,9 +26,47 @@ class ActiveDirectory:
         """Add object(who) to group(where)"""
         return ad_add_members_to_groups(self.__conn, who, where)
 
+    def create_entity(self, dn, object_class, attributes, controls=None):
+        """Create entity in ad"""
+        return self.__conn.add(dn=dn, object_class=object_class, attributes=attributes, controls=controls)
+
+    def create_user(self, login, path, attributes=None):
+        """Create disabled user without password"""
+        localAttrib = {}
+        defAttributes = {'objectClass': 'user', 'sAMAccountName': login}
+        if attributes:
+            localAttrib.update(attributes)
+        localAttrib.update(defAttributes)
+        user_dn = 'CN=' + login + ',' + path
+        if self.create_entity(dn=user_dn, object_class='user', attributes=localAttrib):
+            return user_dn
+        else:
+            return None
+
+    def create_user_with_password(self, login, password, path, attributes=None):
+        """Create enabled user with password"""
+        localAttrib = {}
+        defAttributes = {'objectClass': 'user', 'sAMAccountName': login}
+        if attributes:
+            localAttrib.update(attributes)
+        localAttrib.update(defAttributes)
+        user_dn = 'CN=' + login + ',' + path
+        if self.create_entity(dn=user_dn, object_class='user', attributes=localAttrib):
+            if not self.modify_password(dn=user_dn, password=password):
+                self.__log("debug")
+            if not self.enable_user_dn(user_dn):
+                self.__log("debug")
+            return user_dn
+        else:
+            self.__log("error")
+            return None
+
+
     def enable_user_dn(self, dn):
         """Set status enable for user dn"""
         # userAccountControl : 66048 = 512 + 65536 is enabled default user
+        # 512 NORMAL_ACCOUNT
+        # 65536 PASSWORD_NEVER_EXPIRED
         # only activate
         change_UAC_attribute = {"userAccountControl": [MODIFY_REPLACE, 512]}
         return self.__conn.modify(dn=dn, changes=change_UAC_attribute)
@@ -71,6 +109,10 @@ class ActiveDirectory:
         response = self.get_search(search_tree=search_tree, search_filter='(&(!(objectClass=person))\
                     (!(distinguishedName=' + search_tree + '))(!(objectClass=group)))')
         return [i['dn'] for i in response]
+
+    def get_last_message(self):
+        """Return last message from ldap3.connection"""
+        return self.__conn.result
 
     def get_search(self, search_tree, search_filter, attributes=[], types_only=False, get_operational_attributes=True):
         """Search interface for AD"""
