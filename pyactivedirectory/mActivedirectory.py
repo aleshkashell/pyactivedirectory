@@ -1,6 +1,7 @@
 from ldap3 import Server, Connection, SUBTREE, MODIFY_REPLACE, ALL_ATTRIBUTES
 from ldap3.extend.microsoft.addMembersToGroups import ad_add_members_to_groups
-# import random, string #For generate password
+import random  # For generate password
+import string  # For generate password
 # import sys
 import logging
 logger = logging.getLogger("AD")
@@ -29,6 +30,9 @@ class ActiveDirectory:
     def create_entity(self, dn, object_class, attributes, controls=None):
         """Create entity in ad"""
         return self.__conn.add(dn=dn, object_class=object_class, attributes=attributes, controls=controls)
+
+    def create_group(self, ):
+        pass
 
     def create_user(self, login, path, attributes=None):
         """Create disabled user without password"""
@@ -61,7 +65,6 @@ class ActiveDirectory:
             self.__log("error")
             return None
 
-
     def enable_user_dn(self, dn):
         """Set status enable for user dn"""
         # userAccountControl : 66048 = 512 + 65536 is enabled default user
@@ -70,6 +73,23 @@ class ActiveDirectory:
         # only activate
         change_UAC_attribute = {"userAccountControl": [MODIFY_REPLACE, 512]}
         return self.__conn.modify(dn=dn, changes=change_UAC_attribute)
+
+    def generate_password(self):
+        random.randint(6, 20) - 3
+        pwd = []
+        for i in range(1, 15):
+            gen = random.randint(0, 2)
+            if gen == 0:
+                pwd.append(random.choice(string.ascii_lowercase))
+            if gen == 1:
+                pwd.append(random.choice(string.ascii_uppercase))
+            if gen == 2:
+                pwd.append(str(random.randint(0, 9)))
+        # fill out the rest of the characters
+        # using whatever algorithm you want
+        # for the next "length" characters
+        random.shuffle(pwd)
+        return ''.join(pwd)
 
     def get_dn_by_email(self, email, search_tree=None):
         """Get user dn by email"""
