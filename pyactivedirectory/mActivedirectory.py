@@ -156,7 +156,7 @@ class ActiveDirectory:
         cur_search_tree = self.__check_search_tree(search_tree)
         search_filter = ('(&(objectClass=*)(memberOf={group_dn}))'.format(group_dn=group_dn))
         self.__conn.search(cur_search_tree, search_filter, SUBTREE)
-        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
+        return [_entry_to_json(i)['dn'] for i in self.__conn.entries]
 
     def get_group_members_of_group(self, group_dn, search_tree=None):
         """Get group members of group"""
