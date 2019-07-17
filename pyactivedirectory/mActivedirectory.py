@@ -159,13 +159,6 @@ class ActiveDirectory:
         self.__conn.search(cur_search_tree, search_filter, SUBTREE)
         return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
 
-    def get_user_members_of_group(self, group_dn, search_tree=None):
-        """Get user members of group"""
-        cur_search_tree = self.__check_search_tree(search_tree)
-        search_filter = ('(&(objectClass=person)(memberOf={group_dn}))'.format(group_dn=group_dn))
-        self.__conn.search(cur_search_tree, search_filter, SUBTREE)
-        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
-
     def get_search(self, search_tree, search_filter, attributes=[], types_only=False, get_operational_attributes=True):
         """Search interface for AD"""
         cur_search_tree = self.__check_search_tree(search_tree)
@@ -184,6 +177,20 @@ class ActiveDirectory:
             return response[0]['attributes']
         except KeyError:
             return None
+
+    def get_user_members_of_group(self, group_dn, search_tree=None):
+        """Get user members of group"""
+        cur_search_tree = self.__check_search_tree(search_tree)
+        search_filter = ('(&(objectClass=person)(memberOf={group_dn}))'.format(group_dn=group_dn))
+        self.__conn.search(cur_search_tree, search_filter, SUBTREE)
+        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
+
+    def get_users(self, search_tree=None):
+        """Get users from search tree"""
+        cur_search_tree = self.__check_search_tree(search_tree)
+        search_filter = ('(&(cn=*)(objectClass=user))')
+        self.__conn.search(cur_search_tree, search_filter, SUBTREE)
+        return [i for i in self.__conn.response if i['type'] != 'searchResRef']
 
     def modify_cn(self, dn, new_cn):
         """Change common name"""
