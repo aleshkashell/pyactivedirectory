@@ -4,6 +4,14 @@
 
 This module for interaction with AD. It is wrapper over ldap3 module.
 
+## Example usage
+
+```
+from pyactivedirectory import ActiveDirectory
+ad = ActiveDirectory(ad_user='username', ad_password='password',
+                         ad_server="server", default_search_tree='dc=google,dc=com')
+```
+
 ## Interface
 
 - Add object(who) to group(where)
