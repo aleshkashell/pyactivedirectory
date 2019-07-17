@@ -143,9 +143,9 @@ class ActiveDirectory:
 
     def get_ou(self, search_tree):
         """Return list OUs DN from search_tree"""
-        response = self.get_search(search_tree=search_tree, search_filter='(&(!(objectClass=person))\
+        entries = self.get_search(search_tree=search_tree, search_filter='(&(!(objectClass=person))\
                     (!(distinguishedName=' + search_tree + '))(!(objectClass=group)))')
-        return [i['dn'] for i in response]
+        return [_entry_to_json(i)['dn'] for i in entries]
 
     def get_last_message(self):
         """Return last message from ldap3.connection"""
