@@ -2,6 +2,7 @@ from ldap3 import Server, Connection, SUBTREE, MODIFY_REPLACE, ALL_ATTRIBUTES
 from ldap3.extend.microsoft.addMembersToGroups import ad_add_members_to_groups
 import random  # For generate password
 import string  # For generate password
+import json
 # import sys
 import logging
 logger = logging.getLogger("AD")
@@ -185,12 +186,14 @@ class ActiveDirectory:
         self.__conn.search(cur_search_tree, search_filter, SUBTREE)
         return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
 
-    def get_users(self, search_tree=None):
+    def get_users_json(self, search_tree=None):
         """Get users from search tree"""
         cur_search_tree = self.__check_search_tree(search_tree)
         search_filter = ('(&(cn=*)(objectClass=user))')
-        self.__conn.search(cur_search_tree, search_filter, SUBTREE)
-        return [i for i in self.__conn.response if i['type'] != 'searchResRef']
+        self.__conn.search(cur_search_tree, search_filter, SUBTREE, attributes=ALL_ATTRIBUTES)
+        data = [json.loads(i.entry_to_json()) for i in self.__conn.entries]
+        return data
+
 
     def modify_cn(self, dn, new_cn):
         """Change common name"""
