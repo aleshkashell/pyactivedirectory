@@ -130,9 +130,9 @@ class ActiveDirectory:
         """Get DN by sAMAccountName"""
         search_filter = ('(&(sAMAccountName=' + sAMAccountName + '))')
         cur_search_tree = self.__check_search_tree(search_tree)
-        response = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
+        entries = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
         try:
-            return (response[0]['dn'])
+            return (_entry_to_json(entries[0])['dn'])
         except(KeyError):
             logger.info('"{sAMAccountName}" not found'.format(
                         sAMAccountName=sAMAccountName))
