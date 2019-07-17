@@ -191,7 +191,7 @@ class ActiveDirectory:
         self.__conn.search(cur_search_tree, search_filter, SUBTREE)
         return [_entry_to_json(i)['dn'] for i in self.__conn.entries]
 
-    def get_users_json(self, search_tree=None, attributes=None):
+    def get_users(self, search_tree=None, attributes=None):
         """Get users from search tree"""
         cur_search_tree = self.__check_search_tree(search_tree)
         search_filter = ('(&(cn=*)(objectClass=user))')
