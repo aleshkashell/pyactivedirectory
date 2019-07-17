@@ -2,9 +2,14 @@ from ldap3 import Server, Connection, SUBTREE, MODIFY_REPLACE, ALL_ATTRIBUTES
 from ldap3.extend.microsoft.addMembersToGroups import ad_add_members_to_groups
 import random  # For generate password
 import string  # For generate password
+import json
 # import sys
 import logging
 logger = logging.getLogger("AD")
+
+
+def _entry_to_json(entry):
+    return json.loads(entry.entry_to_json())
 
 
 class ActiveDirectory:
@@ -110,9 +115,10 @@ class ActiveDirectory:
         """Get user dn by email"""
         search_filter = ('(&(mail=' + email + '))')
         cur_search_tree = self.__check_search_tree(search_tree)
-        response = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
+        entries = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
+        logger.debug(entries)
         try:
-            return (response[0]['dn'])
+            return (_entry_to_json(entries[0])['dn'])
         except(KeyError):
             logger.info('"{email}" not found'.format(email=email))
             return None
@@ -124,9 +130,9 @@ class ActiveDirectory:
         """Get DN by sAMAccountName"""
         search_filter = ('(&(sAMAccountName=' + sAMAccountName + '))')
         cur_search_tree = self.__check_search_tree(search_tree)
-        response = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
+        entries = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
         try:
-            return (response[0]['dn'])
+            return (_entry_to_json(entries[0])['dn'])
         except(KeyError):
             logger.info('"{sAMAccountName}" not found'.format(
                         sAMAccountName=sAMAccountName))
@@ -137,9 +143,9 @@ class ActiveDirectory:
 
     def get_ou(self, search_tree):
         """Return list OUs DN from search_tree"""
-        response = self.get_search(search_tree=search_tree, search_filter='(&(!(objectClass=person))\
+        entries = self.get_search(search_tree=search_tree, search_filter='(&(!(objectClass=person))\
                     (!(distinguishedName=' + search_tree + '))(!(objectClass=group)))')
-        return [i['dn'] for i in response]
+        return [_entry_to_json(i)['dn'] for i in entries]
 
     def get_last_message(self):
         """Return last message from ldap3.connection"""
@@ -150,21 +156,14 @@ class ActiveDirectory:
         cur_search_tree = self.__check_search_tree(search_tree)
         search_filter = ('(&(objectClass=*)(memberOf={group_dn}))'.format(group_dn=group_dn))
         self.__conn.search(cur_search_tree, search_filter, SUBTREE)
-        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
+        return [_entry_to_json(i)['dn'] for i in self.__conn.entries]
 
     def get_group_members_of_group(self, group_dn, search_tree=None):
         """Get group members of group"""
         cur_search_tree = self.__check_search_tree(search_tree)
         search_filter = ('(&(objectClass=group)(memberOf={group_dn}))'.format(group_dn=group_dn))
         self.__conn.search(cur_search_tree, search_filter, SUBTREE)
-        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
-
-    def get_user_members_of_group(self, group_dn, search_tree=None):
-        """Get user members of group"""
-        cur_search_tree = self.__check_search_tree(search_tree)
-        search_filter = ('(&(objectClass=person)(memberOf={group_dn}))'.format(group_dn=group_dn))
-        self.__conn.search(cur_search_tree, search_filter, SUBTREE)
-        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
+        return [_entry_to_json(i)['dn'] for i in self.__conn.entries]
 
     def get_search(self, search_tree, search_filter, attributes=[], types_only=False, get_operational_attributes=True):
         """Search interface for AD"""
@@ -173,17 +172,33 @@ class ActiveDirectory:
                            attributes=attributes,
                            types_only=types_only,
                            get_operational_attributes=True)
-        return self.__conn.response
+        return self.__conn.entries
 
     def get_user_attribute(self, dn, attributes=None):
         """Return required attibutes. By default return all attributes"""
         if not attributes:
             attributes = ALL_ATTRIBUTES
-        response = self.get_search(search_tree=dn, search_filter='(objectClass=*)', attributes=attributes)
+        entries = self.get_search(search_tree=dn, search_filter='(objectClass=*)', attributes=attributes)
         try:
-            return response[0]['attributes']
+            return _entry_to_json(entries[0])['attributes']
         except KeyError:
             return None
+
+    def get_user_members_of_group(self, group_dn, search_tree=None):
+        """Get user members of group"""
+        cur_search_tree = self.__check_search_tree(search_tree)
+        search_filter = ('(&(objectClass=person)(memberOf={group_dn}))'.format(group_dn=group_dn))
+        self.__conn.search(cur_search_tree, search_filter, SUBTREE)
+        return [_entry_to_json(i)['dn'] for i in self.__conn.entries]
+
+    def get_users_json(self, search_tree=None):
+        """Get users from search tree"""
+        cur_search_tree = self.__check_search_tree(search_tree)
+        search_filter = ('(&(cn=*)(objectClass=user))')
+        self.__conn.search(cur_search_tree, search_filter, SUBTREE, attributes=ALL_ATTRIBUTES)
+        data = [_entry_to_json(i) for i in self.__conn.entries]
+        return data
+
 
     def modify_cn(self, dn, new_cn):
         """Change common name"""
