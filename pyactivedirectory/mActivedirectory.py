@@ -163,7 +163,7 @@ class ActiveDirectory:
         cur_search_tree = self.__check_search_tree(search_tree)
         search_filter = ('(&(objectClass=group)(memberOf={group_dn}))'.format(group_dn=group_dn))
         self.__conn.search(cur_search_tree, search_filter, SUBTREE)
-        return [i['dn'] for i in self.__conn.response if i['type'] != 'searchResRef']
+        return [_entry_to_json(i)['dn'] for i in self.__conn.entries]
 
     def get_search(self, search_tree, search_filter, attributes=[], types_only=False, get_operational_attributes=True):
         """Search interface for AD"""
@@ -178,9 +178,9 @@ class ActiveDirectory:
         """Return required attibutes. By default return all attributes"""
         if not attributes:
             attributes = ALL_ATTRIBUTES
-        response = self.get_search(search_tree=dn, search_filter='(objectClass=*)', attributes=attributes)
+        entries = self.get_search(search_tree=dn, search_filter='(objectClass=*)', attributes=attributes)
         try:
-            return response[0]['attributes']
+            return _entry_to_json(entries[0])['attributes']
         except KeyError:
             return None
 
