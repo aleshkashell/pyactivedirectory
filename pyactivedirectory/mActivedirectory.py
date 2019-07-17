@@ -8,6 +8,10 @@ import logging
 logger = logging.getLogger("AD")
 
 
+def _entry_to_json(entry):
+    return json.loads(entry.entry_to_json())
+
+
 class ActiveDirectory:
     __conn = ''
 
@@ -111,9 +115,10 @@ class ActiveDirectory:
         """Get user dn by email"""
         search_filter = ('(&(mail=' + email + '))')
         cur_search_tree = self.__check_search_tree(search_tree)
-        response = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
+        entries = self.get_search(search_tree=cur_search_tree, search_filter=search_filter)
+        logger.debug(entries)
         try:
-            return (response[0]['dn'])
+            return (_entry_to_json(entries[0])['dn'])
         except(KeyError):
             logger.info('"{email}" not found'.format(email=email))
             return None
@@ -167,7 +172,7 @@ class ActiveDirectory:
                            attributes=attributes,
                            types_only=types_only,
                            get_operational_attributes=True)
-        return self.__conn.response
+        return self.__conn.entries
 
     def get_user_attribute(self, dn, attributes=None):
         """Return required attibutes. By default return all attributes"""
@@ -191,7 +196,7 @@ class ActiveDirectory:
         cur_search_tree = self.__check_search_tree(search_tree)
         search_filter = ('(&(cn=*)(objectClass=user))')
         self.__conn.search(cur_search_tree, search_filter, SUBTREE, attributes=ALL_ATTRIBUTES)
-        data = [json.loads(i.entry_to_json()) for i in self.__conn.entries]
+        data = [_entry_to_json(i) for i in self.__conn.entries]
         return data
 
 
